@@ -1,8 +1,32 @@
 import streamlit as st
 import os
-import datetime
 import database as db 
 import transcriber as ts 
+import json
+
+st.set_page_config(
+    page_title="Video Archive Search"
+)
+
+INDEX_FILE = ".indexed_folders.json"
+
+
+def load_indexed_folders():
+    if not os.path.exists(INDEX_FILE):
+        return []
+
+    with open(INDEX_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_indexed_folder(folder_path):
+    folders = load_indexed_folders()
+
+    if folder_path not in folders:
+        folders.append(folder_path)
+
+    with open(INDEX_FILE, "w", encoding="utf-8") as f:
+        json.dump(folders, f, ensure_ascii=False, indent=4)
 
 if "playing_video" not in st.session_state:
     st.session_state.playing_video = None
@@ -13,10 +37,26 @@ st.title("Поиск по видеоархиву")
 
 with st.sidebar:
     st.header("Панель управления")
+    try:
+        info = db.get_collection_info()
+        st.metric(
+            "Фрагментов в базе",
+            info.points_count
+        )
+    except Exception:
+        st.warning("База данных пока не создана")
+
+    indexed_folders = load_indexed_folders()
+
+    if indexed_folders:
+        st.subheader("Проиндексированные папки")
+
+        for folder in indexed_folders:
+            st.caption(f"📁 {folder}")
     folder_path = st.text_input(
         "Путь к папке с видеоархивом",
         placeholder="Например: C:/Users/User/Videos",
-        help="Скопируйте путь к папке из проводника Windows"
+        help="Скопируйте путь к папке"
     )
 
     if st.button("Начать сканирование"):
@@ -42,6 +82,8 @@ with st.sidebar:
                 status_message = st.empty()
 
                 for idx, path in enumerate(video_files):
+                    if db.is_video_in_db(path):
+                        continue
                     file_name = os.path.basename(path)
                     relative_dir = os.path.relpath(os.path.dirname(path), folder_path)
                     display_folder = f" [Папка: {relative_dir}]" if relative_dir != "." else ""
@@ -58,7 +100,11 @@ with st.sidebar:
 
                     progress_bar.progress((idx + 1) / len(video_files))
                 
-                status_message.success("Все папки успешно проиндексированны")
+                save_indexed_folder(folder_path)
+
+                status_message.success(
+                    f"Папка успешно проиндексирована:\n{folder_path}"
+                )
 
 search_query = st.text_input(
     "Что вы хотите найти в видеоархиве?", 
@@ -90,13 +136,16 @@ if search_query:
 
         st.title("Видеоплеер")
 
-        if st.session_state.playing_video and st.session_state.playing_time:
+        if st.session_state.playing_video and st.session_state.playing_time is not None:
             current_file = os.path.basename(st.session_state.playing_video)
             st.text(f"Файл: {current_file}")
 
-            st.video(
-                st.session_state.playing_video,
-                start_time=st.session_state.playing_time
-            )
+            if st.session_state.playing_time == 0:
+                st.video(st.session_state.playing_video)
+            else:
+                st.video(
+                    st.session_state.playing_video,
+                    start_time=st.session_state.playing_time
+                )
         else:
             st.info("Выберите любой фрагмент видео слева")

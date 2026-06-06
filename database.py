@@ -3,7 +3,7 @@ import hashlib
 from uuid import UUID
 import streamlit as st
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 from sentence_transformers import SentenceTransformer
 
 DB_PATH = os.path.join(os.path.dirname(__file__), ".qdrant_db")
@@ -12,7 +12,7 @@ COLLECTION_NAME = "video_archive"
 @st.cache_resource
 def init_resources():
     qdrant_client = QdrantClient(path=DB_PATH)
-    embedding_encoder = SentenceTransformer("intfloat/multilingual-e5-small")
+    embedding_encoder = SentenceTransformer("intfloat/multilingual-e5-small", device="cpu")
     
     if not qdrant_client.collection_exists(COLLECTION_NAME):
         qdrant_client.create_collection(
@@ -59,6 +59,23 @@ def add_chunks_to_db(video_path: str, chunks: list):
     if points:
         client.upsert(collection_name=COLLECTION_NAME, points=points)
 
+def is_video_in_db(video_path: str) -> bool:
+
+    result = client.scroll(
+        collection_name=COLLECTION_NAME,
+        scroll_filter=Filter(
+            must=[
+                FieldCondition(
+                    key="video_path",
+                    match=MatchValue(value=video_path)
+                )
+            ]
+        ),
+        limit=1
+    )
+
+    return len(result[0]) > 0
+
 def search_context(query_text: str, limit: int = 5):
     if not query_text.strip():
         return []
@@ -74,3 +91,5 @@ def search_context(query_text: str, limit: int = 5):
 
     return search_results.points
 
+def get_collection_info():
+    return client.get_collection(COLLECTION_NAME)

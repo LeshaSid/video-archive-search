@@ -1,18 +1,15 @@
 import static_ffmpeg
 static_ffmpeg.add_paths()
 import streamlit as st
-
 from faster_whisper import WhisperModel
 
 @st.cache_resource
 def get_whisper_model():
-    print("Loading Whisper...")
     model = WhisperModel(
-        "medium",
+        "small",
         device="cpu",
         compute_type="int8"
     )
-    print("Whisper loaded")
     return model
 
 def transcribe_video(video_path: str, words_per_chunk=40) -> list:
@@ -20,9 +17,16 @@ def transcribe_video(video_path: str, words_per_chunk=40) -> list:
 
     segments, info = model.transcribe(
         video_path,
-        beam_size=5,
+        beam_size=10,
         language="ru",
-        vad_filter=True
+        vad_filter=True,
+        initial_prompt="Разговорная речь, русский язык.",
+        vad_parameters={
+            "threshold": 0.3, 
+            "min_speech_duration_ms": 250,
+            "min_silence_duration_ms": 500,
+            "speech_pad_ms": 400
+        }
     )
 
     chunks = []
@@ -42,10 +46,11 @@ def transcribe_video(video_path: str, words_per_chunk=40) -> list:
         current_end_time = segment.end
 
         if current_word_count >= words_per_chunk:
+            joined_text = " ".join(current_chunk_text)
             chunks.append({
                 "start": current_start_time,
                 "end": current_end_time, 
-                "text": " ".join(current_chunk_text)
+                "text": joined_text
             })
 
             current_chunk_text = []
@@ -53,10 +58,11 @@ def transcribe_video(video_path: str, words_per_chunk=40) -> list:
             current_word_count = 0
 
     if current_chunk_text:
+        joined_text = " ".join(current_chunk_text)
         chunks.append({
             "start": current_start_time,
             "end": current_end_time, 
-            "text": " ".join(current_chunk_text)
+            "text": joined_text
         })
 
     return chunks
