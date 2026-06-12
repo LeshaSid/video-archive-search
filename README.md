@@ -40,10 +40,11 @@
 Проект использует современный и быстрый менеджер пакетов `uv` от Astral.
 
 1. Клонируйте репозиторий:
-   ```bash
-   git clone [https://github.com/LeshaSid/video-archive-search](https://github.com/LeshaSid/video-archive-search)
-   cd video-archive-search
+```bash
+git clone [https://github.com/LeshaSid/video-archive-search](https://github.com/LeshaSid/video-archive-search)
+cd video-archive-search
 
+```
 2. Синхронизируйте окружение и установите зависимости (зависимости зафиксированы в `uv.lock`):
 ```bash
 uv sync
@@ -71,7 +72,7 @@ uv run streamlit run main.py
 * Проверит наличие `uv` в системе (и установит его в профиль пользователя, если он отсутствует).
 * Выполнит синхронизацию окружения `uv sync` в локальный `.venv`.
 * Автоматически откроет окно браузера с адресом `http://127.0.0.1:8501` и запустит сервер Streamlit в фоновом автономном режиме.
-
+> Примечание: `run.exe` должен находится в корне проекта. 
 ---
 
 ## Как пользоваться
