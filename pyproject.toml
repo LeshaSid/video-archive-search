@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "faster-whisper>=1.2.1",
+    "flet>=0.85.3",
     "qdrant-client>=1.12.0",
     "sentence-transformers>=3.0.0",
     "static-ffmpeg>=3.0",

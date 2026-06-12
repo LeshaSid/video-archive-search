@@ -5,7 +5,8 @@ import transcriber as ts
 import json
 
 st.set_page_config(
-    page_title="Video Archive Search"
+    page_title="Video Archive Search",
+    page_icon="icon.ico"
 )
 
 INDEX_FILE = ".indexed_folders.json"
